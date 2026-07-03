@@ -57,8 +57,7 @@ db();
 app.use(
   cors({
     origin: [
-      "http://localhost:5173",
-      "https://p3c87dgd-5173.inc1.devtunnels.ms",
+      "https://blogspheremanish.netlify.app",
     ],
     credentials: true,
   })
