@@ -1,5 +1,5 @@
 const { Server } = require("socket.io");
-const Message = require("../model/messagemodel");
+const Message = require("../model/messageModel");
 const Conversation = require("../model/conversationmodel");
 
 let io;
