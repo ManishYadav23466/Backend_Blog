@@ -22,7 +22,11 @@ const createPostController = async (req,res)=>{
 
 const getPostController = async (req,res)=>{
     try {
-    const allpost = await createPostModel.find().populate("user","-password");
+    // const allpost = await createPostModel.find().populate("user","-password");
+    const allpost = await createPostModel
+  .find()
+  .populate("user", "name email profielpicture followers following")
+  .sort({ createdAt: -1 });
     return res.status(200).json({
         success:true,
         message:"all post fetched successfully",
@@ -48,16 +52,16 @@ const getPostController = async (req,res)=>{
 //   }
 // };
 
-const getuserpostController = async (req, res) => {
-  try {
-    const userId = req.params.userId; // frontend se :userId
-    const posts = await createPostModel.find({ user: userId }).sort({ createdAt: -1 });
-    res.json({ success: true, posts });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
+// const getuserpostController = async (req, res) => {
+//   try {
+//     const userId = req.params.userId; // frontend se :userId
+//     const posts = await createPostModel.find({ user: userId }).sort({ createdAt: -1 });
+//     res.json({ success: true, posts });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
 
 const likePostController = async (req, res) => {
   try {
@@ -104,7 +108,12 @@ const commentPostController = async (req, res) => {
 const getcommentpostController = async (req, res) => {
   try {
     const postId = req.params.postId;
-    const postcomment = await createPostModel.findById(postId);
+    // const postcomment = await createPostModel.findById(postId);
+    const postcomment = await createPostModel
+      .findById(postId)
+      .populate("comments.user", "name")
+      .populate("comments.replies.user", "name");
+
     return res.status(200).json({
       success: true,
       message: "comments fetched successfully",
@@ -161,13 +170,132 @@ const deletePostController = async (req,res)=>{
   }
 }
 
+const likeCommentController = async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+    const userId = req.user.id;
+
+    const post = await createPostModel.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found",
+      });
+    }
+
+    const comment = post.comments.id(commentId);
+
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        message: "Comment not found",
+      });
+    }
+
+    const alreadyLiked = comment.likes.includes(userId);
+
+    if (alreadyLiked) {
+      comment.likes.pull(userId);
+
+      await post.save();
+
+      return res.json({
+        success: true,
+        message: "Comment unliked",
+        likes: comment.likes.length,
+      });
+    }
+
+    comment.likes.push(userId);
+
+    await post.save();
+
+    res.json({
+      success: true,
+      message: "Comment liked",
+      likes: comment.likes.length,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+
+const replyCommentController = async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+    const { text } = req.body;
+    const userId = req.user.id;
+
+    const post = await createPostModel.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found",
+      });
+    }
+
+    const comment = post.comments.id(commentId);
+
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        message: "Comment not found",
+      });
+    }
+
+    comment.replies.push({
+      user: userId,
+      text,
+    });
+
+    await post.save();
+
+    res.json({
+      success: true,
+      message: "Reply added",
+      replies: comment.replies,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getuserpostController = async (req, res) => {
+  try {
+    const posts = await createPostModel
+      .find({ user: req.params.userId })
+      .populate("user", "name profielpicture")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      posts,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
 module.exports={
     createPostController,
     getPostController,
     getuserpostController,
     likePostController,
+    likeCommentController,
     commentPostController,
     sharePostController,
     getcommentpostController,
+    replyCommentController,
     deletePostController
 }

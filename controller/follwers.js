@@ -2,8 +2,8 @@ const userModel = require("../model/signupmodel");
 
 const followUserController = async (req, res) => {
   try {
-    const userId = req.user.id;          // current logged-in user
-    const targetId = req.params.id;      // whom to follow
+    const userId = req.user.id;          
+    const targetId = req.params.id;      
 
     if (userId === targetId)
       return res.status(400).json({ success: false, message: "You can't follow yourself" });
